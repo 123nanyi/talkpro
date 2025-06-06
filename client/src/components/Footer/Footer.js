@@ -11,7 +11,7 @@ const Footer = () => {
             <Link to="/">
               <h2>先驱AI TalkPro</h2>
             </Link>
-            <p>智能客服对话平台，提升您的客户服务体验</p>
+            <p>生成式成交引擎 · 推演策略 · 拿下订单</p>
           </div>
           
           <div className="footer-links">

@@ -28,7 +28,7 @@ const Benefits = () => {
       <div className="container">
         <div className="benefits-header">
           <h2>为什么选择先驱AI TalkPro</h2>
-          <p>我们的智能客服对话平台能为您的业务带来显著优势</p>
+          <p>我们的生成式成交引擎能为您的业务带来显著优势</p>
         </div>
         
         <div className="benefits-list">
