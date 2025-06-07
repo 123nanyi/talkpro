@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+export const runtime = 'edge'; // 使用Edge运行时获得更好的性能
 
 // 允许所有来源的访问（解决CORS问题）
-export async function OPTIONS() {
-  return new NextResponse(null, {
+export async function OPTIONS(request) {
+  return new Response(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
@@ -39,7 +39,6 @@ export async function POST(request) {
     
     // 记录请求详情
     console.log('发送请求到:', apiUrl);
-    console.log('使用API密钥:', apiKey.substring(0, 10) + '...');
     
     // 发送请求到OpenAI API
     const response = await fetch(apiUrl, {
@@ -49,8 +48,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${apiKey}`,
         'User-Agent': 'Mozilla/5.0 TalkPro/1.0'
       },
-      body: JSON.stringify(requestData),
-      cache: 'no-store'
+      body: JSON.stringify(requestData)
     });
     
     // 获取原始响应内容
@@ -58,8 +56,7 @@ export async function POST(request) {
     
     // 记录API响应
     console.log('API响应状态:', response.status);
-    console.log('API响应头:', JSON.stringify(Object.fromEntries([...response.headers])));
-    console.log('API响应内容:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
+    console.log('API响应内容片段:', responseText.substring(0, 100));
     
     // 尝试解析JSON
     let data;
@@ -67,24 +64,22 @@ export async function POST(request) {
       data = JSON.parse(responseText);
     } catch (e) {
       console.error('解析响应JSON失败:', e);
-      return NextResponse.json(
+      return Response.json(
         { error: '无法解析API响应', message: responseText.substring(0, 500) }, 
         { status: 500, headers }
       );
     }
     
     // 成功返回
-    return NextResponse.json(data, { status: response.status, headers });
+    return Response.json(data, { status: response.status, headers });
   } catch (error) {
     // 详细记录错误
     console.error('API代理错误:', error);
-    console.error('错误堆栈:', error.stack);
     
-    return NextResponse.json(
+    return Response.json(
       { 
         error: '代理API错误', 
-        message: error.message,
-        stack: error.stack
+        message: error.message
       },
       { status: 500, headers }
     );

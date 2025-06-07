@@ -61,8 +61,8 @@ const ChatPage = () => {
   // 将API参数存储在状态中，以便在需要时更新
   const [apiConfig] = useState({
     apiKey: getApiKey(),
-    apiUrl: getApiUrl(),
-    model: process.env.REACT_APP_MODEL || 'gpt-3.5-turbo'
+    apiUrl: '/api/openai-proxy', // 直接使用代理API
+    model: 'gpt-3.5-turbo' // 使用GPT-3.5
   });
   
   // 添加组件挂载时的日志
@@ -113,142 +113,30 @@ const ChatPage = () => {
       max_tokens: 1000
     };
     
-    // 使用fetch方法作为备选
-    const makeFetchRequest = async () => {
-      console.log('尝试使用fetch方法...');
-      const url = apiConfig.apiUrl;
-      console.log('Fetch请求URL:', url);
+    try {
+      // 简化：只使用fetch方法
+      console.log('正在调用API:', apiConfig.apiUrl);
+      console.log('使用模型:', apiConfig.model);
       
-      const response = await fetch(url, {
+      const response = await fetch(apiConfig.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W'
+          'Authorization': `Bearer ${apiConfig.apiKey}`
         },
         body: JSON.stringify(requestBody)
       });
       
-      console.log('Fetch响应状态:', response.status);
+      console.log('API响应状态:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Fetch错误响应:', errorText);
-        throw new Error(`Fetch请求失败: ${response.status} - ${errorText}`);
+        console.error('API错误响应:', errorText);
+        throw new Error(`API请求失败: ${response.status} - ${errorText.substring(0, 200)}`);
       }
       
-      return await response.json();
-    };
-    
-    // 使用XMLHttpRequest作为替代方法
-    const makeXHRRequest = () => {
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        // 使用ASCII安全的值
-        const safeUrl = encodeURI(apiConfig.apiUrl);
-        
-        console.log('发起XHR请求到:', safeUrl);
-        console.log('请求模型:', requestBody.model);
-        
-        xhr.open('POST', safeUrl, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        // 直接使用API密钥，确保不受环境变量影响
-        xhr.setRequestHeader('Authorization', 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W');
-        
-        // 添加调试日志
-        console.log('请求头部设置完成');
-        
-        xhr.onload = function() {
-          console.log('收到XHR响应, 状态码:', this.status);
-          
-          if (this.status >= 200 && this.status < 300) {
-            try {
-              const data = JSON.parse(xhr.responseText);
-              console.log('XHR响应解析成功');
-              resolve(data);
-            } catch(e) {
-              console.error('XHR响应解析失败:', e);
-              console.log('原始响应内容:', xhr.responseText.substring(0, 200));
-              reject(new Error(`解析响应失败: ${e.message}`));
-            }
-          } else {
-            let errorMsg = `请求失败，状态码: ${this.status}`;
-            console.error('API响应错误状态码:', this.status);
-            
-            try {
-              const errorResponse = JSON.parse(xhr.responseText);
-              console.error('API错误响应详情:', errorResponse);
-              if (errorResponse.error) {
-                errorMsg += ` - ${errorResponse.error.message || errorResponse.error}`;
-              }
-            } catch (e) {
-              // 如果无法解析错误响应，使用原始错误信息
-              console.error('原始错误响应:', xhr.responseText);
-              errorMsg += ` - ${xhr.responseText || '未知错误'}`;
-            }
-            reject(new Error(errorMsg));
-          }
-        };
-        
-        xhr.onerror = function() {
-          console.error('XHR网络错误');
-          reject(new Error('网络连接错误，请检查您的网络连接或稍后再试'));
-        };
-        
-        xhr.ontimeout = function() {
-          console.error('XHR请求超时');
-          reject(new Error('请求超时，服务器可能繁忙，请稍后再试'));
-        };
-        
-        xhr.timeout = 30000; // 30秒超时
-        
-        try {
-          console.log('发送XHR请求体...');
-          xhr.send(JSON.stringify(requestBody));
-          console.log('XHR请求已发送');
-        } catch (e) {
-          console.error('发送XHR请求失败:', e);
-          reject(new Error(`发送请求失败: ${e.message}`));
-        }
-      });
-    };
-    
-    try {
-      console.log('正在调用API地址:', apiConfig.apiUrl);
-      console.log('请求内容:', requestBody);
-      
-      let data;
-      let error;
-      
-      // 尝试使用XHR
-      try {
-        console.log('尝试使用XMLHttpRequest...');
-        data = await makeXHRRequest();
-        console.log('XMLHttpRequest成功!');
-      } catch (xhrError) {
-        console.error('XMLHttpRequest失败:', xhrError);
-        error = xhrError;
-        
-        // 如果XHR失败，尝试使用fetch
-        try {
-          console.log('尝试使用fetch作为备选方法...');
-          data = await makeFetchRequest();
-          console.log('Fetch请求成功!');
-          error = null; // 清除错误
-        } catch (fetchError) {
-          console.error('Fetch也失败了:', fetchError);
-          error = fetchError; // 保留最新的错误
-        }
-      }
-      
-      // 如果两种方法都失败了
-      if (error) {
-        setError(`API调用失败: ${error.message}`);
-        setIsLoading(false);
-        return; // 提前结束函数执行
-      }
-      
-      console.log('API响应数据:', data);
+      const data = await response.json();
+      console.log('API响应数据获取成功');
       
       if (data.choices && data.choices[0] && data.choices[0].message) {
         try {
