@@ -15,16 +15,22 @@ const getApiKey = () => {
 
 // 安全地获取API URL
 const getApiUrl = () => {
-  // 检查是否在Vercel环境中
-  const isVercel = typeof window !== 'undefined' && 
-                   (window.location.hostname.includes('vercel.app') || 
-                   window.location.hostname.includes('vercel'));
-  
-  // 如果在Vercel环境中，使用代理API
-  if (isVercel) {
-    return '/api/openai-proxy';
+  // 如果在浏览器环境中
+  if (typeof window !== 'undefined') {
+    // 检查是否在Vercel或其他生产环境中
+    const isProduction = 
+      window.location.hostname.includes('vercel.app') || 
+      window.location.hostname.includes('vercel') ||
+      !window.location.hostname.includes('localhost');
+    
+    // 在生产环境中使用API代理
+    if (isProduction) {
+      // 使用相对路径访问同域名下的API代理
+      return '/api/openai-proxy';
+    }
   }
   
+  // 在开发环境中直接访问API
   return process.env.REACT_APP_API_URL || 'https://api.gptsapi.net/v1/chat/completions';
 };
 
@@ -107,6 +113,32 @@ const ChatPage = () => {
       max_tokens: 1000
     };
     
+    // 使用fetch方法作为备选
+    const makeFetchRequest = async () => {
+      console.log('尝试使用fetch方法...');
+      const url = apiConfig.apiUrl;
+      console.log('Fetch请求URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('Fetch响应状态:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Fetch错误响应:', errorText);
+        throw new Error(`Fetch请求失败: ${response.status} - ${errorText}`);
+      }
+      
+      return await response.json();
+    };
+    
     // 使用XMLHttpRequest作为替代方法
     const makeXHRRequest = () => {
       return new Promise((resolve, reject) => {
@@ -115,29 +147,33 @@ const ChatPage = () => {
         // 使用ASCII安全的值
         const safeUrl = encodeURI(apiConfig.apiUrl);
         
+        console.log('发起XHR请求到:', safeUrl);
+        console.log('请求模型:', requestBody.model);
+        
         xhr.open('POST', safeUrl, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         // 直接使用API密钥，确保不受环境变量影响
         xhr.setRequestHeader('Authorization', 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W');
-        // 添加可能需要的额外头部
-        xhr.setRequestHeader('Origin', window.location.origin);
         
-        // 添加请求调试日志
-        console.log('发送请求到URL:', safeUrl);
-        console.log('使用的Authorization头:', 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W');
+        // 添加调试日志
+        console.log('请求头部设置完成');
         
         xhr.onload = function() {
+          console.log('收到XHR响应, 状态码:', this.status);
+          
           if (this.status >= 200 && this.status < 300) {
             try {
               const data = JSON.parse(xhr.responseText);
+              console.log('XHR响应解析成功');
               resolve(data);
             } catch(e) {
+              console.error('XHR响应解析失败:', e);
+              console.log('原始响应内容:', xhr.responseText.substring(0, 200));
               reject(new Error(`解析响应失败: ${e.message}`));
             }
           } else {
             let errorMsg = `请求失败，状态码: ${this.status}`;
             console.error('API响应错误状态码:', this.status);
-            console.error('API响应头:', xhr.getAllResponseHeaders());
             
             try {
               const errorResponse = JSON.parse(xhr.responseText);
@@ -155,18 +191,23 @@ const ChatPage = () => {
         };
         
         xhr.onerror = function() {
+          console.error('XHR网络错误');
           reject(new Error('网络连接错误，请检查您的网络连接或稍后再试'));
         };
         
         xhr.ontimeout = function() {
+          console.error('XHR请求超时');
           reject(new Error('请求超时，服务器可能繁忙，请稍后再试'));
         };
         
         xhr.timeout = 30000; // 30秒超时
         
         try {
+          console.log('发送XHR请求体...');
           xhr.send(JSON.stringify(requestBody));
+          console.log('XHR请求已发送');
         } catch (e) {
+          console.error('发送XHR请求失败:', e);
           reject(new Error(`发送请求失败: ${e.message}`));
         }
       });
@@ -177,13 +218,32 @@ const ChatPage = () => {
       console.log('请求内容:', requestBody);
       
       let data;
+      let error;
       
-      // 直接使用XMLHttpRequest，避免fetch的编码问题
+      // 尝试使用XHR
       try {
+        console.log('尝试使用XMLHttpRequest...');
         data = await makeXHRRequest();
+        console.log('XMLHttpRequest成功!');
       } catch (xhrError) {
         console.error('XMLHttpRequest失败:', xhrError);
-        setError(`API调用失败: ${xhrError.message}`);
+        error = xhrError;
+        
+        // 如果XHR失败，尝试使用fetch
+        try {
+          console.log('尝试使用fetch作为备选方法...');
+          data = await makeFetchRequest();
+          console.log('Fetch请求成功!');
+          error = null; // 清除错误
+        } catch (fetchError) {
+          console.error('Fetch也失败了:', fetchError);
+          error = fetchError; // 保留最新的错误
+        }
+      }
+      
+      // 如果两种方法都失败了
+      if (error) {
+        setError(`API调用失败: ${error.message}`);
         setIsLoading(false);
         return; // 提前结束函数执行
       }
