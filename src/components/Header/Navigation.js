@@ -9,14 +9,19 @@ const Navigation = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  // 定义激活样式的函数
+  const navLinkStyles = ({ isActive }) => {
+    return isActive ? "active" : "";
+  };
+
   return (
     <nav className="navigation">
       <div className="desktop-nav">
         <ul>
-          <li><NavLink to="/" exact activeClassName="active">首页</NavLink></li>
-          <li><NavLink to="/chat" activeClassName="active">对话助手</NavLink></li>
-          <li><NavLink to="/about" activeClassName="active">关于我们</NavLink></li>
-          <li><NavLink to="/contact" activeClassName="active">联系我们</NavLink></li>
+          <li><NavLink to="/" className={navLinkStyles} end>首页</NavLink></li>
+          <li><NavLink to="/chat" className={navLinkStyles}>对话助手</NavLink></li>
+          <li><NavLink to="/about" className={navLinkStyles}>关于我们</NavLink></li>
+          <li><NavLink to="/contact" className={navLinkStyles}>联系我们</NavLink></li>
         </ul>
       </div>
       
@@ -26,10 +31,10 @@ const Navigation = () => {
       
       <div className={`mobile-nav ${mobileMenuOpen ? 'open' : ''}`}>
         <ul>
-          <li><NavLink to="/" exact activeClassName="active" onClick={toggleMobileMenu}>首页</NavLink></li>
-          <li><NavLink to="/chat" activeClassName="active" onClick={toggleMobileMenu}>对话助手</NavLink></li>
-          <li><NavLink to="/about" activeClassName="active" onClick={toggleMobileMenu}>关于我们</NavLink></li>
-          <li><NavLink to="/contact" activeClassName="active" onClick={toggleMobileMenu}>联系我们</NavLink></li>
+          <li><NavLink to="/" className={navLinkStyles} end onClick={toggleMobileMenu}>首页</NavLink></li>
+          <li><NavLink to="/chat" className={navLinkStyles} onClick={toggleMobileMenu}>对话助手</NavLink></li>
+          <li><NavLink to="/about" className={navLinkStyles} onClick={toggleMobileMenu}>关于我们</NavLink></li>
+          <li><NavLink to="/contact" className={navLinkStyles} onClick={toggleMobileMenu}>联系我们</NavLink></li>
         </ul>
       </div>
     </nav>

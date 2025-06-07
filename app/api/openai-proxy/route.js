@@ -13,6 +13,8 @@ export async function OPTIONS(request) {
 }
 
 export async function POST(request) {
+  console.log('收到API请求:', new Date().toISOString());
+  
   // 添加CORS头
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -29,12 +31,12 @@ export async function POST(request) {
     const requestData = await request.json();
     console.log('API代理收到请求:', {
       timestamp: new Date().toISOString(),
-      model: requestData.model || 'gpt-3.5-turbo'
+      model: requestData.model || 'gpt-4o'
     });
     
     // 确保使用正确的模型和参数
     if (!requestData.model) {
-      requestData.model = 'gpt-3.5-turbo';
+      requestData.model = 'gpt-4o';
     }
     
     // 确保使用适当的温度参数，保持自然感

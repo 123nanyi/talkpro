@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
+import { callGPT4o } from '../../api/direct'; // 导入直接API调用
+import { callGPT4oDirectly } from '../../api/directFetch'; // 导入最直接的API调用
 import './ChatPage.css';
 
 // 安全地获取API密钥
@@ -17,7 +19,12 @@ const getApiUrl = () => {
     return '/api/openai-proxy';
   }
   
-  // 在开发环境中直接使用GPTsAPI
+  // 在开发环境中，先尝试代理，如果不行则直接使用GPTsAPI
+  return '/api/openai-proxy';
+};
+
+// 直接获取GPTsAPI URL（当代理失败时使用）
+const getDirectApiUrl = () => {
   return 'https://api.gptsapi.net/v1/chat/completions';
 };
 
@@ -49,7 +56,7 @@ const ChatPage = () => {
   const [apiConfig] = useState({
     apiKey: getApiKey(),
     apiUrl: getApiUrl(),
-    model: 'gpt-3.5-turbo' // 使用GPT-3.5模型
+    model: 'gpt-4o' // 使用GPT-4o模型
   });
   
   // 添加组件挂载时的日志
@@ -75,31 +82,31 @@ const ChatPage = () => {
     setError('');
     
     const requestBody = {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o', // 使用GPT-4o模型
       messages: [
         {
           role: 'system',
-          content: `你是一位非常亲切、接地气且专业的客服，像"网感很强的学姐/学长"一样与客户交流。
+          content: `你是一位自然、真实且专业的客服，像普通人一样与客户交流，不要过度热情或夸张。
 
 语气特点：
-- 使用"宝""小宝""亲"等亲昵昵称拉近距离
-- 用"好滴""嘿嘿""不客气嘿嘿""我都在~"等轻松自然表达
-- 语气温柔亲切："那我给你安排""你放心""有问题随时找我"
-- 回复简短直接，不冗长，有时略带可爱感
+- 可以使用"宝""亲"等昵称，但不要过度使用
+- 用"好的""可以"等自然表达，避免过多使用"嘿嘿""好滴"等过于卖萌的词语
+- 语气友好但不夸张："我来帮你处理""稍等我查一下""有问题随时问我"
+- 回复简短直接，像真实的人在对话
 
 服务态度：
-- 强调"包售后""免费修改""优先处理"等服务承诺
-- 主动确认时间："这边可以吗""我们对一下时间"
-- 根据客户需求主动延伸服务
-- 表现出高度配合和主动跟进的态度
+- 自然提及服务承诺，不要过度强调
+- 清晰确认时间："这个时间可以吗"
+- 根据需要提供帮助，不要过度殷勤
+- 表现出专业和负责任的态度
 
 专业能力：
-- 展示对专业需求的快速理解："我仔细看下哦""会计分析写的是供的"
-- 明确报价和服务内容："标准版写作+提前交稿+免费小调整"
-- 注重细节交付："封面不用动喔""格式也给你改完"
+- 展示专业理解："我理解你的需求"
+- 清楚说明服务内容和价格
+- 关注细节："我会按照要求完成"
 
 请分析用户输入的客户对话，然后：
-1. 提供三种不同的回复方案，体现上述亲切专业的风格
+1. 提供三种不同的回复方案，体现上述自然真实的风格
 2. 简单分析客户可能的想法和需求
 
 回复必须使用以下JSON格式：
@@ -117,94 +124,26 @@ const ChatPage = () => {
       max_tokens: 800
     };
     
-    // 使用XMLHttpRequest作为替代方法
-    const makeXHRRequest = () => {
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        // 使用GPTsAPI的URL
-        const apiUrl = 'https://api.gptsapi.net/v1/chat/completions';
-        const apiKey = 'sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W';
-        
-        console.log('发送请求到:', apiUrl);
-        console.log('使用模型:', requestBody.model);
-        
-        xhr.open('POST', apiUrl, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
-        
-        xhr.onload = function() {
-          console.log('收到响应，状态码:', this.status);
-          
-          if (this.status >= 200 && this.status < 300) {
-            try {
-              const data = JSON.parse(xhr.responseText);
-              console.log('响应解析成功');
-              resolve(data);
-            } catch(e) {
-              console.error('响应解析失败:', e);
-              console.log('原始响应内容:', xhr.responseText.substring(0, 200));
-              reject(new Error(`解析响应失败: ${e.message}`));
-            }
-          } else {
-            let errorMsg = `请求失败，状态码: ${this.status}`;
-            console.error('响应错误状态码:', this.status);
-            
-            try {
-              const errorResponse = JSON.parse(xhr.responseText);
-              console.error('错误响应详情:', errorResponse);
-              if (errorResponse.error) {
-                errorMsg += ` - ${errorResponse.error.message || errorResponse.error}`;
-              }
-            } catch (e) {
-              // 如果无法解析错误响应，使用原始错误信息
-              console.error('原始错误响应:', xhr.responseText);
-              errorMsg += ` - ${xhr.responseText || '未知错误'}`;
-            }
-            reject(new Error(errorMsg));
-          }
-        };
-        
-        xhr.onerror = function() {
-          console.error('网络错误');
-          reject(new Error('网络连接错误，请检查您的网络连接或稍后再试'));
-        };
-        
-        xhr.ontimeout = function() {
-          console.error('请求超时');
-          reject(new Error('请求超时，服务器可能繁忙，请稍后再试'));
-        };
-        
-        xhr.timeout = 30000; // 30秒超时
-        
-        try {
-          console.log('发送请求体...');
-          xhr.send(JSON.stringify(requestBody));
-          console.log('请求已发送');
-        } catch (e) {
-          console.error('发送请求失败:', e);
-          reject(new Error(`发送请求失败: ${e.message}`));
-        }
-      });
-    };
-    
     try {
       console.log('正在调用GPTsAPI...');
       console.log('请求模型:', requestBody.model);
       
       let data;
       
-      // 使用GPTsAPI服务
-      try {
-        data = await makeXHRRequest();
-        console.log('GPTsAPI调用成功');
-      } catch (xhrError) {
-        console.error('GPTsAPI调用失败:', xhrError);
-        setError(`API调用失败: ${xhrError.message}`);
+      // 使用最直接的方式调用API
+      console.log('尝试直接调用GPTsAPI(directFetch)...');
+      const result = await callGPT4oDirectly(
+        inputText,
+        requestBody.messages[0].content
+      );
+      
+      if (!result.success) {
+        setError(`API调用失败: ${result.error}`);
         setIsLoading(false);
-        return; // 提前结束函数执行
+        return;
       }
       
+      data = result.data;
       console.log('GPTsAPI响应数据:', data);
       
       if (data.choices && data.choices[0] && data.choices[0].message) {
@@ -248,7 +187,7 @@ const ChatPage = () => {
             
             // 处理每个回复，确保符合"网感学姐"风格
             const enhancedResponses = validResponses.map(response => {
-              // 简化回复，添加网感学姐/学长风格
+              // 简化回复，调整为更自然的风格
               let enhancedResponse = response;
               
               // 去掉过于正式的开头
@@ -256,44 +195,30 @@ const ChatPage = () => {
                 enhancedResponse = enhancedResponse.replace(/^(尊敬的|亲爱的)[^，,]*[，,]\s*/, "");
               }
               
-              // 替换正式表达为更亲昵的表达
+              // 替换正式表达为更自然的表达
               enhancedResponse = enhancedResponse
-                .replace(/非常感谢您的咨询/, "谢谢你的咨询~")
-                .replace(/我们将竭诚为您服务/, "我会好好帮你处理哒~")
-                .replace(/如果您有任何其他问题，请随时告诉我/, "有问题随时找我，我都在~")
+                .replace(/非常感谢您的咨询/, "谢谢你的咨询")
+                .replace(/我们将竭诚为您服务/, "我会帮你处理")
+                .replace(/如果您有任何其他问题，请随时告诉我/, "有问题随时问我")
                 .replace(/期待与您的再次交流/, "")
-                .replace(/您好/, "哈喽宝~")
+                .replace(/您好/, "你好")
                 .replace(/请问/, "")
                 .replace(/可以为您/, "可以帮你")
                 .replace(/您需要/, "你需要")
                 .replace(/我们的服务/, "我这边")
                 .replace(/为您提供/, "给你提供")
                 .replace(/我们会/, "我会")
-                .replace(/谢谢您/, "谢谢你哦")
+                .replace(/谢谢您/, "谢谢你")
                 .replace(/欢迎您/, "欢迎你")
                 .replace(/麻烦您/, "麻烦你")
                 .replace(/请您/, "请你");
               
-              // 添加亲昵的结束语
-              if (!enhancedResponse.includes("宝") && !enhancedResponse.includes("亲")) {
-                const endingsWithNickname = ["宝~", "小宝~", "亲~", ""];
-                const randomNicknameEnding = endingsWithNickname[Math.floor(Math.random() * endingsWithNickname.length)];
-                
-                // 如果已经有结束标点，替换它；否则添加
-                if (/[。！？]$/.test(enhancedResponse)) {
-                  enhancedResponse = enhancedResponse.replace(/[。！？]$/, randomNicknameEnding ? `，${randomNicknameEnding}` : "~");
-                } else if (!enhancedResponse.endsWith('~')) {
-                  enhancedResponse += randomNicknameEnding ? `，${randomNicknameEnding}` : "~";
-                }
-              }
-              
-              // 添加常用口头语
-              if (Math.random() > 0.7 && !enhancedResponse.includes("好滴") && !enhancedResponse.includes("哒")) {
-                const phrases = ["", "好滴", "嘿嘿", "没问题", "放心吧"];
-                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                if (randomPhrase && !enhancedResponse.startsWith(randomPhrase)) {
-                  enhancedResponse = `${randomPhrase}，${enhancedResponse}`;
-                }
+              // 添加自然的结束方式，避免过度亲昵
+              if (Math.random() > 0.7 && enhancedResponse.endsWith("。")) {
+                // 有30%的概率添加简单的结束语
+                const endings = ["", "希望能帮到你。", "仅供参考。", "有需要随时联系。"];
+                const randomEnding = endings[Math.floor(Math.random() * endings.length)];
+                enhancedResponse = enhancedResponse.replace(/。$/, randomEnding ? `。${randomEnding}` : "。");
               }
               
               return enhancedResponse;
@@ -309,18 +234,15 @@ const ChatPage = () => {
             // 格式化客户想法内容
             let formattedThoughts = parsedContent.customerThoughts;
             
-            // 使用更符合风格的表达方式
-            if (!formattedThoughts.trim().startsWith('这位宝宝') && 
-                !formattedThoughts.trim().startsWith('宝宝') &&
-                !formattedThoughts.trim().startsWith('客户') &&
-                !formattedThoughts.trim().startsWith('小宝')) {
-              // 亲切的引导语
-              const intros = ["这位宝宝", "这位小可爱", "这位客户", "TA"];
-              const randomIntro = intros[Math.floor(Math.random() * intros.length)];
-              formattedThoughts = `${randomIntro}：\n${formattedThoughts}`;
+            // 使用更客观的表达方式
+            if (!formattedThoughts.trim().startsWith('客户') && 
+                !formattedThoughts.trim().startsWith('用户') &&
+                !formattedThoughts.trim().startsWith('分析')) {
+              // 客观的引导语
+              formattedThoughts = `客户需求分析：\n${formattedThoughts}`;
             }
             
-            // 处理格式，保持简洁亲切
+            // 处理格式，保持简洁专业
             if (!formattedThoughts.includes('\n•') && 
                 !formattedThoughts.includes('\n-') &&
                 !formattedThoughts.includes('\n1.') &&
@@ -333,14 +255,9 @@ const ChatPage = () => {
               if (points.length > 1) {
                 // 提取第一行作为标题
                 const title = points[0];
-                // 剩余内容分点呈现，带有亲切感
-                const emojis = ["💭", "✨", "👉", "💫", "🌟"];
+                // 剩余内容分点呈现，使用简洁的符号
                 const listItems = points.slice(1)
-                  .map((point, index) => {
-                    // 轮流使用不同的emoji
-                    const emojiIndex = index % emojis.length;
-                    return `${emojis[emojiIndex]} ${point}`;
-                  })
+                  .map((point, index) => `• ${point}`)
                   .join('\n');
                 
                 formattedThoughts = `${title}\n${listItems}`;
@@ -531,7 +448,20 @@ const ChatPage = () => {
             {/* 错误提示 */}
             {error && (
               <div className="error-message">
-                <p>{error}</p>
+                <p>
+                  <strong>哎呀，出了点小问题~</strong><br/>
+                  {error.includes('404') ? 
+                    'API接口连接失败，请检查以下可能的原因：' : 
+                    error}
+                </p>
+                {error.includes('404') && (
+                  <ul style={{textAlign: 'left', margin: '10px 0'}}>
+                    <li>确保开发服务器已启动</li>
+                    <li>检查setupProxy.js文件配置正确</li>
+                    <li>尝试关闭浏览器缓存</li>
+                    <li>重新启动开发服务器</li>
+                  </ul>
+                )}
                 <div className="error-actions">
                   <button onClick={handleGenerate} className="retry-button">
                     重试
