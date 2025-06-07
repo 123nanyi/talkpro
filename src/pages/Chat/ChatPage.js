@@ -79,16 +79,20 @@ const ChatPage = () => {
       messages: [
         {
           role: 'system',
-          content: `你是一位热情友好的客服助手，擅长以自然、亲切的语气与客户交流。请分析用户输入的客户对话，然后：
+          content: `你是一位自然友好的客服，像普通人一样用简洁自然的语气回复客户。
 
-1. 提供三种不同的回复方案，每种方案都应该：
-   - 语气温暖友好，富有人情味
-   - 避免生硬或机械化的表达
-   - 适当使用一些口语化表达，增加亲切感
-   - 表达真诚的关心和理解
-   - 用自然的语气引导对话
+参考以下话术风格：
+"有呢，需要修改什么呀宝"
+"好滴我仔细看下哦"
+"不是特别急当天要的话我尽量优先"
+"好的好的"
+"哈喽宝~欢迎你来找我~"
+"可以的~"
+"好滴宝宝，然后上面我这边已经收一下"
 
-2. 分析客户潜在的想法、顾虑和需求，帮助更好地理解客户
+请分析用户输入的客户对话，然后：
+1. 提供三种不同的回复方案，保持简短自然的对话风格
+2. 简单分析客户可能的想法和需求
 
 回复必须使用以下JSON格式：
 {
@@ -101,7 +105,7 @@ const ChatPage = () => {
           content: inputText
         }
       ],
-      temperature: 0.8,
+      temperature: 0.7,
       max_tokens: 800
     };
     
@@ -236,14 +240,20 @@ const ChatPage = () => {
             
             // 处理每个回复，确保语气自然
             const enhancedResponses = validResponses.map(response => {
-              // 如果回复以"您好"或类似机械的开头，可以稍微变化一下
+              // 简化回复，避免过于繁琐的表达
               let enhancedResponse = response;
-              if (enhancedResponse.startsWith("您好") || enhancedResponse.startsWith("你好")) {
-                // 随机替换一些更自然的开场白
-                const greetings = ["嗨，", "您好呀，", "亲爱的客户，", "亲，", ""];
-                const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-                enhancedResponse = enhancedResponse.replace(/^(您好|你好)[,，]?\s*/, randomGreeting);
+              
+              // 去掉过于正式的开头
+              if (enhancedResponse.startsWith("尊敬的") || enhancedResponse.startsWith("亲爱的")) {
+                enhancedResponse = enhancedResponse.replace(/^(尊敬的|亲爱的)[^，,]*[，,]\s*/, "");
               }
+              
+              // 简化客气话
+              enhancedResponse = enhancedResponse
+                .replace(/非常感谢您的咨询/, "谢谢你的咨询")
+                .replace(/我们将竭诚为您服务/, "")
+                .replace(/如果您有任何其他问题，请随时告诉我/, "有问题随时问我哦")
+                .replace(/期待与您的再次交流/, "");
               
               return enhancedResponse;
             });
@@ -259,19 +269,17 @@ const ChatPage = () => {
             let formattedThoughts = parsedContent.customerThoughts;
             
             // 使用更自然的表达方式
-            if (!formattedThoughts.trim().startsWith('客户想法') && 
-                !formattedThoughts.trim().startsWith('客户可能') && 
-                !formattedThoughts.trim().startsWith('客户正在') &&
-                !formattedThoughts.trim().startsWith('从对话中')) {
-              // 使用更自然的引导语
-              formattedThoughts = `从对话中，我感觉到客户可能：\n${formattedThoughts}`;
+            if (!formattedThoughts.trim().startsWith('客户') && 
+                !formattedThoughts.trim().startsWith('这位')) {
+              // 简短自然的引导语
+              formattedThoughts = `这位客户：\n${formattedThoughts}`;
             }
             
-            // 处理可能的列表格式，让它更自然
-            if (!formattedThoughts.includes('\n1.') && 
-                !formattedThoughts.includes('\n•') && 
-                !formattedThoughts.includes('\n-')) {
-              // 尝试将文本转换为列表格式
+            // 处理格式，保持简洁
+            if (!formattedThoughts.includes('\n•') && 
+                !formattedThoughts.includes('\n-') &&
+                !formattedThoughts.includes('\n1.')) {
+              // 分点整理
               const points = formattedThoughts.split('。')
                 .filter(point => point.trim().length > 0)
                 .map(point => point.trim() + (point.endsWith('。') ? '' : '。'));
@@ -279,9 +287,9 @@ const ChatPage = () => {
               if (points.length > 1) {
                 // 提取第一行作为标题
                 const title = points[0];
-                // 剩余内容作为列表项，使用更友好的标记
+                // 剩余内容分点呈现
                 const listItems = points.slice(1)
-                  .map((point, index) => `• ${point}`)
+                  .map(point => `- ${point}`)
                   .join('\n');
                 
                 formattedThoughts = `${title}\n${listItems}`;

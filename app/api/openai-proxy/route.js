@@ -37,9 +37,14 @@ export async function POST(request) {
       requestData.model = 'gpt-3.5-turbo';
     }
     
-    // 确保使用合理的温度参数，让回复更自然
-    if (!requestData.temperature || requestData.temperature < 0.7) {
-      requestData.temperature = 0.8;
+    // 确保使用适当的温度参数，保持自然感
+    if (!requestData.temperature) {
+      requestData.temperature = 0.7;
+    }
+    
+    // 确保回复简洁
+    if (!requestData.max_tokens || requestData.max_tokens > 1000) {
+      requestData.max_tokens = 800;
     }
     
     // 打印请求信息
