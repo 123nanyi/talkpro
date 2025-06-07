@@ -79,19 +79,27 @@ const ChatPage = () => {
       messages: [
         {
           role: 'system',
-          content: `你是一位自然友好的客服，像普通人一样用简洁自然的语气回复客户。
+          content: `你是一位非常亲切、接地气且专业的客服，像"网感很强的学姐/学长"一样与客户交流。
 
-参考以下话术风格：
-"有呢，需要修改什么呀宝"
-"好滴我仔细看下哦"
-"不是特别急当天要的话我尽量优先"
-"好的好的"
-"哈喽宝~欢迎你来找我~"
-"可以的~"
-"好滴宝宝，然后上面我这边已经收一下"
+语气特点：
+- 使用"宝""小宝""亲"等亲昵昵称拉近距离
+- 用"好滴""嘿嘿""不客气嘿嘿""我都在~"等轻松自然表达
+- 语气温柔亲切："那我给你安排""你放心""有问题随时找我"
+- 回复简短直接，不冗长，有时略带可爱感
+
+服务态度：
+- 强调"包售后""免费修改""优先处理"等服务承诺
+- 主动确认时间："这边可以吗""我们对一下时间"
+- 根据客户需求主动延伸服务
+- 表现出高度配合和主动跟进的态度
+
+专业能力：
+- 展示对专业需求的快速理解："我仔细看下哦""会计分析写的是供的"
+- 明确报价和服务内容："标准版写作+提前交稿+免费小调整"
+- 注重细节交付："封面不用动喔""格式也给你改完"
 
 请分析用户输入的客户对话，然后：
-1. 提供三种不同的回复方案，保持简短自然的对话风格
+1. 提供三种不同的回复方案，体现上述亲切专业的风格
 2. 简单分析客户可能的想法和需求
 
 回复必须使用以下JSON格式：
@@ -238,9 +246,9 @@ const ChatPage = () => {
               validResponses.push("暂无更多回复建议");
             }
             
-            // 处理每个回复，确保语气自然
+            // 处理每个回复，确保符合"网感学姐"风格
             const enhancedResponses = validResponses.map(response => {
-              // 简化回复，避免过于繁琐的表达
+              // 简化回复，添加网感学姐/学长风格
               let enhancedResponse = response;
               
               // 去掉过于正式的开头
@@ -248,12 +256,45 @@ const ChatPage = () => {
                 enhancedResponse = enhancedResponse.replace(/^(尊敬的|亲爱的)[^，,]*[，,]\s*/, "");
               }
               
-              // 简化客气话
+              // 替换正式表达为更亲昵的表达
               enhancedResponse = enhancedResponse
-                .replace(/非常感谢您的咨询/, "谢谢你的咨询")
-                .replace(/我们将竭诚为您服务/, "")
-                .replace(/如果您有任何其他问题，请随时告诉我/, "有问题随时问我哦")
-                .replace(/期待与您的再次交流/, "");
+                .replace(/非常感谢您的咨询/, "谢谢你的咨询~")
+                .replace(/我们将竭诚为您服务/, "我会好好帮你处理哒~")
+                .replace(/如果您有任何其他问题，请随时告诉我/, "有问题随时找我，我都在~")
+                .replace(/期待与您的再次交流/, "")
+                .replace(/您好/, "哈喽宝~")
+                .replace(/请问/, "")
+                .replace(/可以为您/, "可以帮你")
+                .replace(/您需要/, "你需要")
+                .replace(/我们的服务/, "我这边")
+                .replace(/为您提供/, "给你提供")
+                .replace(/我们会/, "我会")
+                .replace(/谢谢您/, "谢谢你哦")
+                .replace(/欢迎您/, "欢迎你")
+                .replace(/麻烦您/, "麻烦你")
+                .replace(/请您/, "请你");
+              
+              // 添加亲昵的结束语
+              if (!enhancedResponse.includes("宝") && !enhancedResponse.includes("亲")) {
+                const endingsWithNickname = ["宝~", "小宝~", "亲~", ""];
+                const randomNicknameEnding = endingsWithNickname[Math.floor(Math.random() * endingsWithNickname.length)];
+                
+                // 如果已经有结束标点，替换它；否则添加
+                if (/[。！？]$/.test(enhancedResponse)) {
+                  enhancedResponse = enhancedResponse.replace(/[。！？]$/, randomNicknameEnding ? `，${randomNicknameEnding}` : "~");
+                } else if (!enhancedResponse.endsWith('~')) {
+                  enhancedResponse += randomNicknameEnding ? `，${randomNicknameEnding}` : "~";
+                }
+              }
+              
+              // 添加常用口头语
+              if (Math.random() > 0.7 && !enhancedResponse.includes("好滴") && !enhancedResponse.includes("哒")) {
+                const phrases = ["", "好滴", "嘿嘿", "没问题", "放心吧"];
+                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+                if (randomPhrase && !enhancedResponse.startsWith(randomPhrase)) {
+                  enhancedResponse = `${randomPhrase}，${enhancedResponse}`;
+                }
+              }
               
               return enhancedResponse;
             });
@@ -268,17 +309,22 @@ const ChatPage = () => {
             // 格式化客户想法内容
             let formattedThoughts = parsedContent.customerThoughts;
             
-            // 使用更自然的表达方式
-            if (!formattedThoughts.trim().startsWith('客户') && 
-                !formattedThoughts.trim().startsWith('这位')) {
-              // 简短自然的引导语
-              formattedThoughts = `这位客户：\n${formattedThoughts}`;
+            // 使用更符合风格的表达方式
+            if (!formattedThoughts.trim().startsWith('这位宝宝') && 
+                !formattedThoughts.trim().startsWith('宝宝') &&
+                !formattedThoughts.trim().startsWith('客户') &&
+                !formattedThoughts.trim().startsWith('小宝')) {
+              // 亲切的引导语
+              const intros = ["这位宝宝", "这位小可爱", "这位客户", "TA"];
+              const randomIntro = intros[Math.floor(Math.random() * intros.length)];
+              formattedThoughts = `${randomIntro}：\n${formattedThoughts}`;
             }
             
-            // 处理格式，保持简洁
+            // 处理格式，保持简洁亲切
             if (!formattedThoughts.includes('\n•') && 
                 !formattedThoughts.includes('\n-') &&
-                !formattedThoughts.includes('\n1.')) {
+                !formattedThoughts.includes('\n1.') &&
+                !formattedThoughts.includes('\n💭')) {
               // 分点整理
               const points = formattedThoughts.split('。')
                 .filter(point => point.trim().length > 0)
@@ -287,9 +333,14 @@ const ChatPage = () => {
               if (points.length > 1) {
                 // 提取第一行作为标题
                 const title = points[0];
-                // 剩余内容分点呈现
+                // 剩余内容分点呈现，带有亲切感
+                const emojis = ["💭", "✨", "👉", "💫", "🌟"];
                 const listItems = points.slice(1)
-                  .map(point => `- ${point}`)
+                  .map((point, index) => {
+                    // 轮流使用不同的emoji
+                    const emojiIndex = index % emojis.length;
+                    return `${emojis[emojiIndex]} ${point}`;
+                  })
                   .join('\n');
                 
                 formattedThoughts = `${title}\n${listItems}`;
