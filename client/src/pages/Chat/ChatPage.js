@@ -15,6 +15,16 @@ const getApiKey = () => {
 
 // 安全地获取API URL
 const getApiUrl = () => {
+  // 检查是否在Vercel环境中
+  const isVercel = typeof window !== 'undefined' && 
+                   (window.location.hostname.includes('vercel.app') || 
+                   window.location.hostname.includes('vercel'));
+  
+  // 如果在Vercel环境中，使用代理API
+  if (isVercel) {
+    return '/api/openai-proxy';
+  }
+  
   return process.env.REACT_APP_API_URL || 'https://api.gptsapi.net/v1/chat/completions';
 };
 
@@ -107,7 +117,14 @@ const ChatPage = () => {
         
         xhr.open('POST', safeUrl, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.setRequestHeader('Authorization', `Bearer ${apiConfig.apiKey}`);
+        // 直接使用API密钥，确保不受环境变量影响
+        xhr.setRequestHeader('Authorization', 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W');
+        // 添加可能需要的额外头部
+        xhr.setRequestHeader('Origin', window.location.origin);
+        
+        // 添加请求调试日志
+        console.log('发送请求到URL:', safeUrl);
+        console.log('使用的Authorization头:', 'Bearer sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W');
         
         xhr.onload = function() {
           if (this.status >= 200 && this.status < 300) {
@@ -119,13 +136,18 @@ const ChatPage = () => {
             }
           } else {
             let errorMsg = `请求失败，状态码: ${this.status}`;
+            console.error('API响应错误状态码:', this.status);
+            console.error('API响应头:', xhr.getAllResponseHeaders());
+            
             try {
               const errorResponse = JSON.parse(xhr.responseText);
+              console.error('API错误响应详情:', errorResponse);
               if (errorResponse.error) {
                 errorMsg += ` - ${errorResponse.error.message || errorResponse.error}`;
               }
             } catch (e) {
               // 如果无法解析错误响应，使用原始错误信息
+              console.error('原始错误响应:', xhr.responseText);
               errorMsg += ` - ${xhr.responseText || '未知错误'}`;
             }
             reject(new Error(errorMsg));
@@ -151,7 +173,7 @@ const ChatPage = () => {
     };
     
     try {
-      console.log('正在调用API...');
+      console.log('正在调用API地址:', apiConfig.apiUrl);
       console.log('请求内容:', requestBody);
       
       let data;
