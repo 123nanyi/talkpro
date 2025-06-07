@@ -1,0 +1,128 @@
+.how-it-works {
+  padding: 6rem 0;
+  background-color: #f8f9ff;
+}
+
+.hiw-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.hiw-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.hiw-header p {
+  font-size: 1.2rem;
+  color: #666;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.steps-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  position: relative;
+}
+
+.steps-container::before {
+  content: '';
+  position: absolute;
+  top: 3rem;
+  left: 2rem;
+  right: 2rem;
+  height: 2px;
+  background: linear-gradient(to right, #4a6cff, #a5b4ff);
+  z-index: 0;
+}
+
+.step-card {
+  flex: 1;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 3rem 2rem 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #4a6cff;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4.5rem auto 1.5rem;
+  box-shadow: 0 5px 15px rgba(74, 108, 255, 0.3);
+}
+
+.step-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.step-card p {
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.6;
+}
+
+@media (max-width: 992px) {
+  .steps-container {
+    flex-direction: column;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .steps-container::before {
+    display: none;
+  }
+  
+  .step-card {
+    margin-top: 4rem;
+  }
+  
+  .step-card:first-child {
+    margin-top: 4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .how-it-works {
+    padding: 4rem 0;
+  }
+  
+  .hiw-header h2 {
+    font-size: 2rem;
+  }
+  
+  .hiw-header p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .hiw-header h2 {
+    font-size: 1.8rem;
+  }
+  
+  .hiw-header p {
+    font-size: 1rem;
+  }
+  
+  .step-card {
+    padding: 2.5rem 1.5rem 1.5rem;
+  }
+} 
