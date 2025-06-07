@@ -32,10 +32,22 @@ export async function POST(request) {
       model: requestData.model || 'gpt-3.5-turbo'
     });
     
-    // 确保使用正确的模型
+    // 确保使用正确的模型和参数
     if (!requestData.model) {
       requestData.model = 'gpt-3.5-turbo';
     }
+    
+    // 确保使用合理的温度参数，让回复更自然
+    if (!requestData.temperature || requestData.temperature < 0.7) {
+      requestData.temperature = 0.8;
+    }
+    
+    // 打印请求信息
+    console.log('代理请求内容:', {
+      model: requestData.model,
+      temperature: requestData.temperature,
+      message_count: requestData.messages?.length || 0
+    });
     
     // 使用GPTsAPI的URL
     const apiUrl = 'https://api.gptsapi.net/v1/chat/completions';

@@ -79,9 +79,16 @@ const ChatPage = () => {
       messages: [
         {
           role: 'system',
-          content: `你是一位专业的客服助手，擅长分析客户对话并提供回复建议。请分析用户输入的客户对话，然后：
-1. 提供三种不同的回复方案，每种方案针对不同角度
-2. 分析客户潜在的想法、顾虑和需求
+          content: `你是一位热情友好的客服助手，擅长以自然、亲切的语气与客户交流。请分析用户输入的客户对话，然后：
+
+1. 提供三种不同的回复方案，每种方案都应该：
+   - 语气温暖友好，富有人情味
+   - 避免生硬或机械化的表达
+   - 适当使用一些口语化表达，增加亲切感
+   - 表达真诚的关心和理解
+   - 用自然的语气引导对话
+
+2. 分析客户潜在的想法、顾虑和需求，帮助更好地理解客户
 
 回复必须使用以下JSON格式：
 {
@@ -94,7 +101,7 @@ const ChatPage = () => {
           content: inputText
         }
       ],
-      temperature: 0.7,
+      temperature: 0.8,
       max_tokens: 800
     };
     
@@ -227,8 +234,22 @@ const ChatPage = () => {
               validResponses.push("暂无更多回复建议");
             }
             
-            setResponseOptions(validResponses);
-            setSelectedResponse(validResponses[0]);
+            // 处理每个回复，确保语气自然
+            const enhancedResponses = validResponses.map(response => {
+              // 如果回复以"您好"或类似机械的开头，可以稍微变化一下
+              let enhancedResponse = response;
+              if (enhancedResponse.startsWith("您好") || enhancedResponse.startsWith("你好")) {
+                // 随机替换一些更自然的开场白
+                const greetings = ["嗨，", "您好呀，", "亲爱的客户，", "亲，", ""];
+                const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+                enhancedResponse = enhancedResponse.replace(/^(您好|你好)[,，]?\s*/, randomGreeting);
+              }
+              
+              return enhancedResponse;
+            });
+            
+            setResponseOptions(enhancedResponses);
+            setSelectedResponse(enhancedResponses[0]);
           } else {
             throw new Error('API返回格式不符合预期，缺少回复选项');
           }
@@ -237,14 +258,16 @@ const ChatPage = () => {
             // 格式化客户想法内容
             let formattedThoughts = parsedContent.customerThoughts;
             
-            // 如果不是以客户想法分析开头，添加标题
+            // 使用更自然的表达方式
             if (!formattedThoughts.trim().startsWith('客户想法') && 
                 !formattedThoughts.trim().startsWith('客户可能') && 
-                !formattedThoughts.trim().startsWith('客户正在')) {
-              formattedThoughts = `客户想法分析：\n${formattedThoughts}`;
+                !formattedThoughts.trim().startsWith('客户正在') &&
+                !formattedThoughts.trim().startsWith('从对话中')) {
+              // 使用更自然的引导语
+              formattedThoughts = `从对话中，我感觉到客户可能：\n${formattedThoughts}`;
             }
             
-            // 处理可能的列表格式
+            // 处理可能的列表格式，让它更自然
             if (!formattedThoughts.includes('\n1.') && 
                 !formattedThoughts.includes('\n•') && 
                 !formattedThoughts.includes('\n-')) {
@@ -256,9 +279,9 @@ const ChatPage = () => {
               if (points.length > 1) {
                 // 提取第一行作为标题
                 const title = points[0];
-                // 剩余内容作为列表项
+                // 剩余内容作为列表项，使用更友好的标记
                 const listItems = points.slice(1)
-                  .map((point, index) => `${index + 1}. ${point}`)
+                  .map((point, index) => `• ${point}`)
                   .join('\n');
                 
                 formattedThoughts = `${title}\n${listItems}`;
