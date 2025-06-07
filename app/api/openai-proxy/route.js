@@ -22,25 +22,26 @@ export async function POST(request) {
   };
 
   try {
-    // 直接使用硬编码的API密钥，避免环境变量问题
+    // 使用GPTsAPI的密钥
     const apiKey = 'sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W';
     
     // 获取请求体
     const requestData = await request.json();
-    
-    console.log('API代理接收到请求:', {
+    console.log('API代理收到请求:', {
       timestamp: new Date().toISOString(),
-      model: requestData.model,
-      messageCount: requestData.messages?.length || 0
+      model: requestData.model || 'gpt-3.5-turbo'
     });
     
-    // 准备API请求
+    // 确保使用正确的模型
+    if (!requestData.model) {
+      requestData.model = 'gpt-3.5-turbo';
+    }
+    
+    // 使用GPTsAPI的URL
     const apiUrl = 'https://api.gptsapi.net/v1/chat/completions';
+    console.log('转发请求到:', apiUrl);
     
-    // 记录请求详情
-    console.log('发送请求到:', apiUrl);
-    
-    // 发送请求到OpenAI API
+    // 发送请求到GPTsAPI
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -51,29 +52,30 @@ export async function POST(request) {
       body: JSON.stringify(requestData)
     });
     
-    // 获取原始响应内容
+    // 记录API响应状态
+    console.log('GPTsAPI响应状态:', response.status);
+    
+    // 获取响应内容
     const responseText = await response.text();
+    console.log('GPTsAPI响应长度:', responseText.length);
     
-    // 记录API响应
-    console.log('API响应状态:', response.status);
-    console.log('API响应内容片段:', responseText.substring(0, 100));
-    
-    // 尝试解析JSON
+    // 尝试解析响应
     let data;
     try {
       data = JSON.parse(responseText);
+      console.log('GPTsAPI响应解析成功');
     } catch (e) {
-      console.error('解析响应JSON失败:', e);
+      console.error('解析GPTsAPI响应失败:', e);
       return Response.json(
         { error: '无法解析API响应', message: responseText.substring(0, 500) }, 
         { status: 500, headers }
       );
     }
     
-    // 成功返回
+    // 返回响应
     return Response.json(data, { status: response.status, headers });
   } catch (error) {
-    // 详细记录错误
+    // 记录错误
     console.error('API代理错误:', error);
     
     return Response.json(

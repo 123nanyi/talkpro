@@ -5,17 +5,20 @@ import './ChatPage.css';
 
 // 安全地获取API密钥
 const getApiKey = () => {
-  // 尝试从环境变量获取（如果在生产环境中配置了）
-  if (process.env.REACT_APP_OPENROUTER_API_KEY) {
-    return process.env.REACT_APP_OPENROUTER_API_KEY;
-  }
-  // 否则使用硬编码的值（不推荐用于生产环境）
-  return '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';
+  // 使用GPTsAPI的API密钥
+  return 'sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W';
 };
 
 // 安全地获取API URL
 const getApiUrl = () => {
-  return process.env.REACT_APP_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  // 检查是否在生产环境中
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    // 在生产环境中使用API代理
+    return '/api/openai-proxy';
+  }
+  
+  // 在开发环境中直接使用GPTsAPI
+  return 'https://api.gptsapi.net/v1/chat/completions';
 };
 
 const ChatPage = () => {
@@ -46,7 +49,7 @@ const ChatPage = () => {
   const [apiConfig] = useState({
     apiKey: getApiKey(),
     apiUrl: getApiUrl(),
-    model: process.env.REACT_APP_MODEL || 'openai/gpt-4o-search-preview'
+    model: 'gpt-3.5-turbo' // 使用GPT-3.5模型
   });
   
   // 添加组件挂载时的日志
@@ -72,21 +75,19 @@ const ChatPage = () => {
     setError('');
     
     const requestBody = {
-      model: apiConfig.model,
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
-          content: `#背景：你是一位代写服务的客服，专业提供论文、报告、文章等定制写作服务。客户可能咨询代写内容、价格、时间等问题。请以专业、礼貌、简洁的语气回答，促进成交，确保回复自然可信。
+          content: `你是一位专业的客服助手，擅长分析客户对话并提供回复建议。请分析用户输入的客户对话，然后：
+1. 提供三种不同的回复方案，每种方案针对不同角度
+2. 分析客户潜在的想法、顾虑和需求
 
-          你的任务是分析用户输入的客户对话，然后提供以下内容：
-          1. 三条不同的可能回复话术，每条话术针对不同角度或策略，但都应符合代写服务客服的角色
-          2. 对客户潜在想法的分析，包括可能的考虑点、顾虑和兴趣点
-          
-          请使用以下JSON格式返回：
-          {
-            "responses": ["回复1", "回复2", "回复3"],
-            "customerThoughts": "客户想法分析内容"
-          }`
+回复必须使用以下JSON格式：
+{
+  "responses": ["回复1", "回复2", "回复3"],
+  "customerThoughts": "客户想法分析内容"
+}`
         },
         {
           role: 'user',
@@ -94,7 +95,7 @@ const ChatPage = () => {
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 800
     };
     
     // 使用XMLHttpRequest作为替代方法
@@ -102,31 +103,43 @@ const ChatPage = () => {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
-        // 使用ASCII安全的值
-        const safeUrl = encodeURI(apiConfig.apiUrl);
+        // 使用GPTsAPI的URL
+        const apiUrl = 'https://api.gptsapi.net/v1/chat/completions';
+        const apiKey = 'sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W';
         
-        xhr.open('POST', safeUrl, true);
+        console.log('发送请求到:', apiUrl);
+        console.log('使用模型:', requestBody.model);
+        
+        xhr.open('POST', apiUrl, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.setRequestHeader('Authorization', `Bearer ${apiConfig.apiKey}`);
-        xhr.setRequestHeader('X-Title', 'TalkPro');
+        xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
         
         xhr.onload = function() {
+          console.log('收到响应，状态码:', this.status);
+          
           if (this.status >= 200 && this.status < 300) {
             try {
               const data = JSON.parse(xhr.responseText);
+              console.log('响应解析成功');
               resolve(data);
             } catch(e) {
+              console.error('响应解析失败:', e);
+              console.log('原始响应内容:', xhr.responseText.substring(0, 200));
               reject(new Error(`解析响应失败: ${e.message}`));
             }
           } else {
             let errorMsg = `请求失败，状态码: ${this.status}`;
+            console.error('响应错误状态码:', this.status);
+            
             try {
               const errorResponse = JSON.parse(xhr.responseText);
+              console.error('错误响应详情:', errorResponse);
               if (errorResponse.error) {
                 errorMsg += ` - ${errorResponse.error.message || errorResponse.error}`;
               }
             } catch (e) {
               // 如果无法解析错误响应，使用原始错误信息
+              console.error('原始错误响应:', xhr.responseText);
               errorMsg += ` - ${xhr.responseText || '未知错误'}`;
             }
             reject(new Error(errorMsg));
@@ -134,40 +147,46 @@ const ChatPage = () => {
         };
         
         xhr.onerror = function() {
+          console.error('网络错误');
           reject(new Error('网络连接错误，请检查您的网络连接或稍后再试'));
         };
         
         xhr.ontimeout = function() {
+          console.error('请求超时');
           reject(new Error('请求超时，服务器可能繁忙，请稍后再试'));
         };
         
         xhr.timeout = 30000; // 30秒超时
         
         try {
+          console.log('发送请求体...');
           xhr.send(JSON.stringify(requestBody));
+          console.log('请求已发送');
         } catch (e) {
+          console.error('发送请求失败:', e);
           reject(new Error(`发送请求失败: ${e.message}`));
         }
       });
     };
     
     try {
-      console.log('正在调用API...');
-      console.log('请求内容:', requestBody);
+      console.log('正在调用GPTsAPI...');
+      console.log('请求模型:', requestBody.model);
       
       let data;
       
-      // 直接使用XMLHttpRequest，避免fetch的编码问题
+      // 使用GPTsAPI服务
       try {
         data = await makeXHRRequest();
+        console.log('GPTsAPI调用成功');
       } catch (xhrError) {
-        console.error('XMLHttpRequest失败:', xhrError);
+        console.error('GPTsAPI调用失败:', xhrError);
         setError(`API调用失败: ${xhrError.message}`);
         setIsLoading(false);
         return; // 提前结束函数执行
       }
       
-      console.log('API响应数据:', data);
+      console.log('GPTsAPI响应数据:', data);
       
       if (data.choices && data.choices[0] && data.choices[0].message) {
         try {

@@ -5,11 +5,7 @@ import './ChatPage.css';
 
 // 安全地获取API密钥
 const getApiKey = () => {
-  // 尝试从环境变量获取（如果在生产环境中配置了）
-  if (process.env.REACT_APP_OPENAI_API_KEY) {
-    return process.env.REACT_APP_OPENAI_API_KEY;
-  }
-  // 使用提供的API密钥
+  // 永远使用GPTsAPI的密钥
   return 'sk-W02fb9fdf014fb8152fa2d61f083ba9b86bd5a9535c4c17W';
 };
 
